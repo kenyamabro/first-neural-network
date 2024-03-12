@@ -102,7 +102,6 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 
     QList<QList<QList<double>>> wGradient;
     QList<QList<double>> bGradient;
-    double Co;
     for (int L = 0; L < layersNum; ++L) {
         wGradient.append(QList<QList<double>>());
         bGradient.append(QList<double>());
@@ -114,6 +113,9 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
             bGradient[L].append(0);
         }
     }
+
+    double costAverage = 0;
+    int accuracy = 0;
 
     //Compute gradient descent's vector--------------------------------------
     for (int image = firstSample; image < firstSample + batchSize; ++image) {
@@ -158,13 +160,21 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //        debug << Qt::endl;
 
         //Compute cost function
-        Co = 0;//cost function
+        double Co = 0;//cost function
         QList<double> cost;
+        double biggestCost = 0;
+        int biggestIndex = -1;
         for (int i = 0; i < neuronsNum[layersNum]; ++i) {
             cost.append(pow((a[layersNum][i] - y[i]), 2));
             Co += cost[i];
+            if(cost[i] > biggestCost){
+                biggestCost = cost[i];
+                biggestIndex = i;
+            }
         }
+        if(biggestIndex == (int)labelsFile.at(image)) ++accuracy;
         Co /= neuronsNum[layersNum];
+        costAverage += Co;
 //        debug << "Costs :" << cost << Qt::endl
 //              << "Cost function: " << Co[image] << Qt::endl
 //              << Qt::endl;
@@ -207,6 +217,7 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //              << bGradient << Qt::endl
 //              << Qt::endl;
     }
+    costAverage /= batchSize;
 
     for (int L = 0; L < layersNum; ++L) {
         for (int j = 0; j < neuronsNum[L+1]; ++j) {
@@ -224,7 +235,8 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //          << "Gradient of b :" << Qt::endl
 //          << bGradient << Qt::endl
 //          << Qt::endl;
-    debug << "Cost#" << firstSample / batchSize << Co;
+    debug << "#" << firstSample / batchSize << "Cost:" << costAverage
+          << "Accuracy:" << accuracy << "/" << batchSize;
 }
 
 double MainWindow::sech(double x) {
