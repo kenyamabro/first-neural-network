@@ -5,7 +5,6 @@ This was not created watching a programming tutorial telling me exactly how to d
 
 One example of cost functions and accuracy of the neural network over 600 mini-batches of 100 data points:
 0 # Cost: 0.552054 Accuracy: 2 / 100
-
 1 # Cost: 0.512597 Accuracy: 3 / 100
 2 # Cost: 0.515335 Accuracy: 5 / 100
 3 # Cost: 0.471051 Accuracy: 8 / 100
