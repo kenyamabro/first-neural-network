@@ -4,13 +4,13 @@ The hidden layers number and the neurons number inside each of them can be easil
 This was not created watching a programming tutorial telling me exactly how to do it. I studied and learned the algorithm first, and then translated it to code.
 
 One example of cost functions and accuracy of the neural network over 600 mini-batches of 100 data points:
-0 # Cost: 0.552054 Accuracy: 2 / 100
-1 # Cost: 0.512597 Accuracy: 3 / 100
-2 # Cost: 0.515335 Accuracy: 5 / 100
-3 # Cost: 0.471051 Accuracy: 8 / 100
-4 # Cost: 0.461714 Accuracy: 4 / 100
-5 # Cost: 0.425692 Accuracy: 2 / 100
-6 # Cost: 0.417987 Accuracy: 8 / 100
+0 # Cost: 0.552054 Accuracy: 2 / 100  
+1 # Cost: 0.512597 Accuracy: 3 / 100  
+2 # Cost: 0.515335 Accuracy: 5 / 100  
+3 # Cost: 0.471051 Accuracy: 8 / 100  
+4 # Cost: 0.461714 Accuracy: 4 / 100  
+5 # Cost: 0.425692 Accuracy: 2 / 100  
+6 # Cost: 0.417987 Accuracy: 8 / 100  
 7 # Cost: 0.402937 Accuracy: 8 / 100
 8 # Cost: 0.385421 Accuracy: 10 / 100
 9 # Cost: 0.369186 Accuracy: 15 / 100
