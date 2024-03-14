@@ -6,6 +6,7 @@
 #include <QRandomGenerator>
 #include <QFile>
 #include <QDataStream>
+#include <QtCharts/QtCharts>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -31,8 +32,9 @@ private:
     QList<QList<unsigned char>> imagesFile;
     QList<unsigned char> labelsFile;
     
-    void minimizeCostFunction(int firstSample, int batchSize);
-
+    void minimizeCostFunction(int firstSample, int batchSize, double &costAverage, int &accuracy);
     double sech(double x);
+signals:
+    void batchTrained(int point, double cost, int acuracy);
 };
 #endif // MAINWINDOW_H

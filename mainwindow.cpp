@@ -97,7 +97,115 @@ QList<unsigned char> readLabelFile(const QString& filename) {
     return labels;
 }
 
-void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    QDebug debug = qDebug();
+
+    this->setCentralWidget(new QWidget());
+    auto layout = new QHBoxLayout();
+    this->centralWidget()->setLayout(layout);
+
+    auto initializerLayout = new QFormLayout();
+    layout->addLayout(initializerLayout, 1);
+
+    auto initializeButton = new QPushButton("Initialize");
+    initializerLayout->addRow(initializeButton);
+
+    int batchSize = 100;
+
+    auto costSeries = new QLineSeries;
+    auto acuracySeries = new QLineSeries;
+
+    costSeries->setName("Cost");
+    acuracySeries->setName("Acuracy");
+
+    QChart* chart = new QChart();
+    chart->setTitle("Cost and acuracy");
+    QFont font;
+    font.setPointSize(12);
+    font.setBold(true);
+    chart->setTitleFont(font);
+
+    costSeries->setPointsVisible(true);
+    acuracySeries->setPointsVisible(true);
+    chart->addSeries(costSeries);
+    chart->addSeries(acuracySeries);
+
+    chart->createDefaultAxes();
+
+    chart->axes(Qt::Horizontal).constFirst()->setTitleText("Trainings");
+    chart->axes(Qt::Vertical).constFirst()->setTitleText("Decimal");
+
+    auto xAxis = qobject_cast<QValueAxis*>(chart->axes(Qt::Horizontal).at(0));
+    auto yAxis = qobject_cast<QValueAxis*>(chart->axes(Qt::Vertical).at(0));
+
+    xAxis->setTickType(QValueAxis::TicksFixed);
+    yAxis->setTickType(QValueAxis::TicksFixed);
+
+    xAxis->setLabelFormat("%g");
+    yAxis->setLabelFormat("%g");
+
+    yAxis->setMin(0);
+    yAxis->setMax(1);
+
+    auto chartView = new QChartView(chart);
+    chartView->setRenderHint(QPainter::Antialiasing);
+    layout->addWidget(chartView, 5);
+
+    QObject::connect(initializeButton, &QPushButton::clicked, this, [=]{
+        for (int L = 0; L < layersNum + 1; ++L) {
+            a.append(QList<double>());
+            for (int j = 0; j < neuronsNum[L]; ++j) {
+                a[L].append(0);
+            }
+        }
+
+        for (int L = 0; L < layersNum; ++L) {
+            w.append(QList<QList<double>>());
+            b.append(QList<double>());
+            for (int j = 0; j < neuronsNum[L+1]; ++j) {
+                w[L].append(QList<double>());
+                for(int k = 0; k < neuronsNum[L]; ++k){
+                    w[L][j].append(QRandomGenerator::global()->generateDouble() * 2 - 1);
+                }
+                b[L].append(QRandomGenerator::global()->generateDouble() / 2);
+            }
+        }
+
+        QString filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-images-idx3-ubyte/train-images-idx3-ubyte");
+        QString label_filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-labels-idx1-ubyte/train-labels-idx1-ubyte");
+
+        imagesFile = readIDX3UByteFile(filename);
+        labelsFile = readLabelFile(label_filename);
+
+        for (int x = 0; x < 600; ++x) {
+            double cost = 0;
+            int acuracy = 0;
+
+            minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
+            emit batchTrained(x, cost, acuracy);
+
+            QCoreApplication::processEvents();
+        }
+    });
+
+    connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
+        costSeries->append(QPointF(x, cost));
+        acuracySeries->append(QPointF(x, (double)acuracy / batchSize));
+
+        xAxis->setMax(x);
+    });
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &costAverage, int &accuracy){
     QDebug debug = qDebug();
 
     QList<QList<QList<double>>> wGradient;
@@ -114,14 +222,8 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
         }
     }
 
-    double costAverage = 0;
-    int accuracy = 0;
-
     //Compute gradient descent's vector--------------------------------------
     for (int image = firstSample; image < firstSample + batchSize; ++image) {
-//        debug << "Sample#" << image << Qt::endl
-//              << Qt::endl;
-
         //Set objective outputs (y)
         QList<int> y;//Objective outputs
         for (int i = 0; i < neuronsNum[layersNum]; ++i) {
@@ -131,8 +233,6 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
                 y.append(0);
             }
         }
-//        debug << "Objective :" << y << Qt::endl
-//              << Qt::endl;
 
         //Set inputs (a[0])
         for (int i = 0; i < neuronsNum[0]; ++i) {
@@ -153,11 +253,7 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
                 z[endLayer].append(n);
                 a[endLayer][startLayer] = (tanh(n) + 1) / 2;
             }
-//            debug << "Layer " << endLayer+1 << ":"
-//                  << a[endLayer] << Qt::endl
-//                  << neuronsNum[endLayer] << "x" << neuronsNum[endLayer-1] << Qt::endl;
         }
-//        debug << Qt::endl;
 
         //Compute cost function
         double Co = 0;//cost function
@@ -175,9 +271,6 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
         if(biggestIndex == (int)labelsFile.at(image)) ++accuracy;
         Co /= neuronsNum[layersNum];
         costAverage += Co;
-//        debug << "Costs :" << cost << Qt::endl
-//              << "Cost function: " << Co[image] << Qt::endl
-//              << Qt::endl;
 
         //Compute gradient descent's derivatives
         QList<QList<double>> cost_z;//da/dz * dCo/da
@@ -211,11 +304,6 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
                 }
             }
         }
-//        debug << "Gradient of w :" << Qt::endl
-//              << wGradient << Qt::endl
-//              << "Gradient of b :" << Qt::endl
-//              << bGradient << Qt::endl
-//              << Qt::endl;
     }
     costAverage /= batchSize;
 
@@ -229,12 +317,6 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
             b[L][j] -= 0.01 * bGradient[L][j];
         }
     }
-//    debug << "Average :" << Qt::endl
-//          << "Gradient of w :" << Qt::endl
-//          << wGradient << Qt::endl
-//          << "Gradient of b :" << Qt::endl
-//          << bGradient << Qt::endl
-//          << Qt::endl;
     debug << firstSample / batchSize << "# Cost:" << costAverage
           << "Accuracy:" << accuracy << "/" << batchSize << " ";
 }
@@ -242,74 +324,3 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 double MainWindow::sech(double x) {
     return 1.0 / cosh(x);
 }
-
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
-    QDebug debug = qDebug();
-
-    for (int L = 0; L < layersNum + 1; ++L) {
-        a.append(QList<double>());
-        for (int j = 0; j < neuronsNum[L]; ++j) {
-            a[L].append(0);
-        }
-    }
-
-    for (int L = 0; L < layersNum; ++L) {
-        w.append(QList<QList<double>>());
-        b.append(QList<double>());
-        for (int j = 0; j < neuronsNum[L+1]; ++j) {
-            w[L].append(QList<double>());
-            for(int k = 0; k < neuronsNum[L]; ++k){
-                w[L][j].append(QRandomGenerator::global()->generateDouble() * 2 - 1);
-            }
-            b[L].append(QRandomGenerator::global()->generateDouble() / 2);
-        }
-    }
-//    debug << "Weights:" << w << Qt::endl
-//          << "Biases:" << b << Qt::endl;
-
-
-    QString filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-images-idx3-ubyte/train-images-idx3-ubyte");
-    QString label_filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-labels-idx1-ubyte/train-labels-idx1-ubyte");
-
-    imagesFile = readIDX3UByteFile(filename);
-    labelsFile = readLabelFile(label_filename);
-
-//    int random = QRandomGenerator::global()->bounded(60001);
-//    int exemple = 0;
-//    debug << "Random exemple : " << exemple << Qt::endl;
-//    for (int i = 0; i < (int)imagesFile.at(exemple).size(); ++i) {
-//        int pixel = (int)imagesFile.at(exemple).at(i);
-//        debug << pixel;
-//        int digits = 1;
-//        while(pixel >= 10){
-//            pixel /= 10;
-//            ++digits;
-//        }
-//        for(int j = 0; j < 3 - digits; ++j){
-//            debug << "";
-//        }
-//        if((i + 1) % 28 == 0){
-//            debug << Qt::endl;
-//        }
-//    }
-//    if (!labelsFile.empty()) {
-//        debug << "Label : " << labelsFile.at(exemple);
-//    } else {
-//        debug << "Labels vector is empty or does not contain any elements.";
-//    }
-//    debug << Qt::endl;
-
-    for (int i = 0; i < 600; ++i) {
-        minimizeCostFunction(100 * i, 100);
-    }
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
-
