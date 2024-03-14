@@ -122,7 +122,7 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //        debug << "Sample#" << image << Qt::endl
 //              << Qt::endl;
 
-        //Set objective outputs
+        //Set objective outputs (y)
         QList<int> y;//Objective outputs
         for (int i = 0; i < neuronsNum[layersNum]; ++i) {
             if(i == (int)labelsFile.at(image)){
@@ -134,12 +134,12 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //        debug << "Objective :" << y << Qt::endl
 //              << Qt::endl;
 
-        //Set inputs
+        //Set inputs (a[0])
         for (int i = 0; i < neuronsNum[0]; ++i) {
             a[0][i] = (double)imagesFile.at(image).at(i) / 256;
         }
 
-        //Compute outputs
+        //Compute outputs (a)
         QList<QList<double>> z;//weighted sum
         z.append(QList<double>());
         for (int endLayer = 1; endLayer < layersNum + 1; ++endLayer) {
@@ -235,8 +235,8 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize){
 //          << "Gradient of b :" << Qt::endl
 //          << bGradient << Qt::endl
 //          << Qt::endl;
-    debug << "#" << firstSample / batchSize << "Cost:" << costAverage
-          << "Accuracy:" << accuracy << "/" << batchSize;
+    debug << firstSample / batchSize << "# Cost:" << costAverage
+          << "Accuracy:" << accuracy << "/" << batchSize << " ";
 }
 
 double MainWindow::sech(double x) {
@@ -262,17 +262,14 @@ MainWindow::MainWindow(QWidget *parent)
         b.append(QList<double>());
         for (int j = 0; j < neuronsNum[L+1]; ++j) {
             w[L].append(QList<double>());
-//            debug << "[" << L << "][" << j << "]" << Qt::endl;
-//            debug << "Weights : ";
             for(int k = 0; k < neuronsNum[L]; ++k){
-                w[L][j].append(randomGenerator.generateDouble() * 2 - 1);
-//                debug << w[L][j][k] << " ";
+                w[L][j].append(QRandomGenerator::global()->generateDouble() * 2 - 1);
             }
-            b[L].append(randomGenerator.generateDouble() / 2);
-//            debug << "Bias : " << b[L][j] << Qt::endl;
+            b[L].append(QRandomGenerator::global()->generateDouble() / 2);
         }
-//        debug << Qt::endl;
     }
+//    debug << "Weights:" << w << Qt::endl
+//          << "Biases:" << b << Qt::endl;
 
 
     QString filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-images-idx3-ubyte/train-images-idx3-ubyte");

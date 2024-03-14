@@ -33,8 +33,6 @@ private:
     
     void minimizeCostFunction(int firstSample, int batchSize);
 
-    QRandomGenerator randomGenerator;
-
     double sech(double x);
 };
 #endif // MAINWINDOW_H
