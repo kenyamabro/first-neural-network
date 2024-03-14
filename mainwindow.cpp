@@ -114,6 +114,11 @@ MainWindow::MainWindow(QWidget *parent)
     auto initializeButton = new QPushButton("Initialize");
     initializerLayout->addRow(initializeButton);
 
+    auto pauseButton = new QRadioButton("Pause computing");
+    pauseButton->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+    pauseButton->hide();
+    initializerLayout->addRow(pauseButton);
+
     int batchSize = 100;
 
     auto costSeries = new QLineSeries;
@@ -155,7 +160,11 @@ MainWindow::MainWindow(QWidget *parent)
     chartView->setRenderHint(QPainter::Antialiasing);
     layout->addWidget(chartView, 5);
 
-    QObject::connect(initializeButton, &QPushButton::clicked, this, [=]{
+    bool stopComputation = false;
+
+    QObject::connect(initializeButton, &QPushButton::clicked, this, [=]() mutable {
+        pauseButton->show();
+
         for (int L = 0; L < neuronsNumPerLayer.size(); ++L) {
             a.append(QList<double>());
             for (int j = 0; j < neuronsNumPerLayer[L]; ++j) {
@@ -181,17 +190,35 @@ MainWindow::MainWindow(QWidget *parent)
         imagesFile = readIDX3UByteFile(filename);
         labelsFile = readLabelFile(label_filename);
 
-        for (int x = 0; x < 600; ++x) {
-            double cost = 0;
-            int acuracy = 0;
+        int x = 0;
+        bool everythingComputed = false;
+        while (!everythingComputed) {
+            while (x < imagesFile.size() / batchSize && !stopComputation) {
+                double cost = 0;
+                int acuracy = 0;
 
-            minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
-            emit batchTrained(x, cost, acuracy);
+                minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
+                emit batchTrained(x, cost, acuracy);
 
-            QCoreApplication::processEvents();
+                if(pauseButton->isChecked()){
+//                    pauseButton->setText("Resume computing");
+                    stopComputation = true;
+                }
+                ++x;
+
+                QCoreApplication::processEvents();
+            }
+            while(x < imagesFile.size() / batchSize && stopComputation){
+                if(!pauseButton->isChecked()){
+//                    pauseButton->setText("Pause computing");
+                    stopComputation = false;
+                }
+                QCoreApplication::processEvents();
+            }
+            if(x >= imagesFile.size() / batchSize) everythingComputed = true;
         }
+        pauseButton->hide();
     });
-
     connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
         costSeries->append(QPointF(x, cost));
         acuracySeries->append(QPointF(x, (double)acuracy / batchSize));
