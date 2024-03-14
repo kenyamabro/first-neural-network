@@ -23,8 +23,7 @@ public:
 private:
     Ui::MainWindow *ui;
 
-    QList<int> neuronsNum = {728, 16, 16, 10};//neurons number per layer
-    int layersNum = neuronsNum.size() - 1;//layers index
+    QList<int> neuronsNumPerLayer = {728, 16, 16, 10};//neurons number per layer
     QList<QList<double>> a;//neurons values
     QList<QList<QList<double>>> w;//weights
     QList<QList<double>> b;//biases
