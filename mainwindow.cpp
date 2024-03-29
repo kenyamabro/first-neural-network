@@ -108,16 +108,25 @@ MainWindow::MainWindow(QWidget *parent)
     auto layout = new QHBoxLayout();
     this->centralWidget()->setLayout(layout);
 
-    auto initializerLayout = new QFormLayout();
-    layout->addLayout(initializerLayout, 1);
+    auto initializerWidget = new QWidget();
+    auto initializerLayout = new QFormLayout(initializerWidget);
+    layout->addWidget(initializerWidget, 1);
 
     auto initializeButton = new QPushButton("Initialize");
     initializerLayout->addRow(initializeButton);
 
-    auto pauseButton = new QRadioButton("Pause computing");
-    pauseButton->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    pauseButton->hide();
-    initializerLayout->addRow(pauseButton);
+    auto computationWidget = new QWidget();
+    auto computationLayout = new QFormLayout(computationWidget);
+    layout->addWidget(computationWidget, 1);
+    computationWidget->hide();
+
+    auto pauseButton = new QCheckBox("Pause computing");
+    computationLayout->addRow(pauseButton);
+    pauseButton->setCheckable(true);
+
+    auto quitButton = new QCheckBox("Quit computing");
+    computationLayout->addRow(quitButton);
+    quitButton->setCheckable(true);
 
     int batchSize = 100;
 
@@ -160,11 +169,13 @@ MainWindow::MainWindow(QWidget *parent)
     chartView->setRenderHint(QPainter::Antialiasing);
     layout->addWidget(chartView, 5);
 
-    bool stopComputation = false;
+    bool pauseComputation = false;
 
     QObject::connect(initializeButton, &QPushButton::clicked, this, [=]() mutable {
-        pauseButton->show();
+        initializerWidget->hide();
+        computationWidget->show();
 
+        a.clear();
         for (int L = 0; L < neuronsNumPerLayer.size(); ++L) {
             a.append(QList<double>());
             for (int j = 0; j < neuronsNumPerLayer[L]; ++j) {
@@ -172,6 +183,8 @@ MainWindow::MainWindow(QWidget *parent)
             }
         }
 
+        w.clear();
+        b.clear();
         for (int L = 0; L < neuronsNumPerLayer.size() - 1; ++L) {
             w.append(QList<QList<double>>());
             b.append(QList<double>());
@@ -191,33 +204,43 @@ MainWindow::MainWindow(QWidget *parent)
         labelsFile = readLabelFile(label_filename);
 
         int x = 0;
-        bool everythingComputed = false;
-        while (!everythingComputed) {
-            while (x < imagesFile.size() / batchSize && !stopComputation) {
+        bool quitComputation = false;
+        while (!quitComputation) {
+            while (x < imagesFile.size() / batchSize && !pauseComputation && !quitComputation) {
                 double cost = 0;
                 int acuracy = 0;
 
                 minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
                 emit batchTrained(x, cost, acuracy);
 
-                if(pauseButton->isChecked()){
-//                    pauseButton->setText("Resume computing");
-                    stopComputation = true;
+                if(pauseButton->isChecked()) pauseComputation = true;
+                if(quitButton->isChecked()){
+                    pauseComputation = true;
+                    quitComputation = true;
                 }
                 ++x;
 
                 QCoreApplication::processEvents();
             }
-            while(x < imagesFile.size() / batchSize && stopComputation){
-                if(!pauseButton->isChecked()){
-//                    pauseButton->setText("Pause computing");
-                    stopComputation = false;
+            while(x < imagesFile.size() / batchSize && pauseComputation && !quitComputation){
+                if(!pauseButton->isChecked()) pauseComputation = false;
+                if(quitButton->isChecked()){
+                    pauseComputation = false;
+                    quitComputation = true;
                 }
                 QCoreApplication::processEvents();
             }
-            if(x >= imagesFile.size() / batchSize) everythingComputed = true;
+            if(x >= imagesFile.size() / batchSize) quitComputation = true;
         }
-        pauseButton->hide();
+
+        costSeries->clear();
+        acuracySeries->clear();
+
+        pauseButton->setChecked(false);
+        quitButton->setChecked(false);
+
+        computationWidget->hide();
+        initializerWidget->show();
     });
     connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
         costSeries->append(QPointF(x, cost));
@@ -334,14 +357,15 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
     }
     costAverage /= batchSize;
 
+    double r = 0.1;//Learning rate
     for (int L = 0; L < neuronsNumPerLayer.size() - 1; ++L) {
         for (int j = 0; j < neuronsNumPerLayer[L+1]; ++j) {
             for(int k = 0; k < neuronsNumPerLayer[L]; ++k){
                 wGradient[L][j][k] /= batchSize;
-                w[L][j][k] -= 0.01 * wGradient[L][j][k];
+                w[L][j][k] -= r * wGradient[L][j][k];
             }
             bGradient[L][j] /= batchSize;
-            b[L][j] -= 0.01 * bGradient[L][j];
+            b[L][j] -= r * bGradient[L][j];
         }
     }
     debug << firstSample / batchSize << "# Cost:" << costAverage
