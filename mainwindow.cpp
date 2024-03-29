@@ -171,6 +171,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     bool pauseComputation = false;
 
+    QString filename = "./train-images-idx3-ubyte/train-images-idx3-ubyte";
+    QString label_filename = "./train-labels-idx1-ubyte/train-labels-idx1-ubyte";
+
+    imagesFile = readIDX3UByteFile(filename);
+    labelsFile = readLabelFile(label_filename);
+
     QObject::connect(initializeButton, &QPushButton::clicked, this, [=]() mutable {
         initializerWidget->hide();
         computationWidget->show();
@@ -197,12 +203,6 @@ MainWindow::MainWindow(QWidget *parent)
             }
         }
 
-        QString filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-images-idx3-ubyte/train-images-idx3-ubyte");
-        QString label_filename = QString::fromStdString("C:/Users/david/Documents/QtCreator/Projects/NeuralNetwork/build-NeuralNetwork-Desktop_Qt_5_15_2_MinGW_32_bit-Debug/train-labels-idx1-ubyte/train-labels-idx1-ubyte");
-
-        imagesFile = readIDX3UByteFile(filename);
-        labelsFile = readLabelFile(label_filename);
-
         int x = 0;
         bool quitComputation = false;
         while (!quitComputation) {
@@ -218,6 +218,7 @@ MainWindow::MainWindow(QWidget *parent)
                     pauseComputation = true;
                     quitComputation = true;
                 }
+
                 ++x;
 
                 QCoreApplication::processEvents();
