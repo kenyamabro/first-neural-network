@@ -215,9 +215,6 @@ MainWindow::MainWindow(QWidget *parent)
                 ++x;
                 QCoreApplication::processEvents();
             }
-            while(x < imagesFile.size() / batchSize && pauseButton->isChecked() && !quitButton->isChecked()){
-                QCoreApplication::processEvents();
-            }
             QCoreApplication::processEvents();
         }
 
