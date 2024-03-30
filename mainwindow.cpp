@@ -128,8 +128,6 @@ MainWindow::MainWindow(QWidget *parent)
     graphLayout->addRow(quitButton);
     quitButton->setCheckable(true);
 
-    int batchSize = 100;
-
     auto costSeries = new QLineSeries;
     auto acuracySeries = new QLineSeries;
 
@@ -180,21 +178,21 @@ MainWindow::MainWindow(QWidget *parent)
         graphWidget->show();
 
         a.clear();
-        for (int L = 0; L < neuronsNumPerLayer.size(); ++L) {
+        for (int L = 0; L < neuronsPerLayerList.size(); ++L) {
             a.append(QList<double>());
-            for (int j = 0; j < neuronsNumPerLayer[L]; ++j) {
+            for (int j = 0; j < neuronsPerLayerList[L]; ++j) {
                 a[L].append(0);
             }
         }
 
         w.clear();
         b.clear();
-        for (int L = 0; L < neuronsNumPerLayer.size() - 1; ++L) {
+        for (int L = 0; L < neuronsPerLayerList.size() - 1; ++L) {
             w.append(QList<QList<double>>());
             b.append(QList<double>());
-            for (int j = 0; j < neuronsNumPerLayer[L+1]; ++j) {
+            for (int j = 0; j < neuronsPerLayerList[L+1]; ++j) {
                 w[L].append(QList<double>());
-                for(int k = 0; k < neuronsNumPerLayer[L]; ++k){
+                for(int k = 0; k < neuronsPerLayerList[L]; ++k){
                     w[L][j].append(QRandomGenerator::global()->generateDouble() * 2 - 1);
                 }
                 b[L].append(QRandomGenerator::global()->generateDouble() / 2);
@@ -239,12 +237,12 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
 
     QList<QList<QList<double>>> wGradient;
     QList<QList<double>> bGradient;
-    for (int L = 0; L < neuronsNumPerLayer.size() - 1; ++L) {
+    for (int L = 0; L < neuronsPerLayerList.size() - 1; ++L) {
         wGradient.append(QList<QList<double>>());
         bGradient.append(QList<double>());
-        for (int j = 0; j < neuronsNumPerLayer[L+1]; ++j) {
+        for (int j = 0; j < neuronsPerLayerList[L+1]; ++j) {
             wGradient[L].append(QList<double>());
-            for(int k = 0; k < neuronsNumPerLayer[L]; ++k){
+            for(int k = 0; k < neuronsPerLayerList[L]; ++k){
                 wGradient[L][j].append(0);
             }
             bGradient[L].append(0);
@@ -255,7 +253,7 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
     for (int image = firstSample; image < firstSample + batchSize; ++image) {
         //Set objective outputs (y)
         QList<int> y;//Objective outputs
-        for (int i = 0; i < neuronsNumPerLayer[neuronsNumPerLayer.size() - 1]; ++i) {
+        for (int i = 0; i < neuronsPerLayerList[neuronsPerLayerList.size() - 1]; ++i) {
             if(i == (int)labelsFile.at(image)){
                 y.append(1);
             }else{
@@ -264,18 +262,18 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
         }
 
         //Set inputs (a[0])
-        for (int i = 0; i < neuronsNumPerLayer[0]; ++i) {
+        for (int i = 0; i < neuronsPerLayerList[0]; ++i) {
             a[0][i] = (double)imagesFile.at(image).at(i) / 256;
         }
 
         //Compute outputs (a)
         QList<QList<double>> z;//weighted sum
         z.append(QList<double>());
-        for (int endLayer = 1; endLayer < neuronsNumPerLayer.size(); ++endLayer) {
+        for (int endLayer = 1; endLayer < neuronsPerLayerList.size(); ++endLayer) {
             z.append(QList<double>());
-            for (int startLayer = 0; startLayer < neuronsNumPerLayer[endLayer]; ++startLayer) {
+            for (int startLayer = 0; startLayer < neuronsPerLayerList[endLayer]; ++startLayer) {
                 double n = 0;
-                for (int k = 0; k < neuronsNumPerLayer[endLayer-1]; ++k) {
+                for (int k = 0; k < neuronsPerLayerList[endLayer-1]; ++k) {
                     n += w[endLayer-1][startLayer][k] * a[endLayer-1][k];
                 }
                 n += b[endLayer-1][startLayer];
@@ -289,8 +287,8 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
         QList<double> cost;
         double biggestCost = 0;
         int biggestIndex = -1;
-        for (int i = 0; i < neuronsNumPerLayer[neuronsNumPerLayer.size() - 1]; ++i) {
-            cost.append(pow((a[neuronsNumPerLayer.size() - 1][i] - y[i]), 2));
+        for (int i = 0; i < neuronsPerLayerList[neuronsPerLayerList.size() - 1]; ++i) {
+            cost.append(pow((a[neuronsPerLayerList.size() - 1][i] - y[i]), 2));
             Co += cost[i];
             if(cost[i] > biggestCost){
                 biggestCost = cost[i];
@@ -298,29 +296,29 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
             }
         }
         if(biggestIndex == (int)labelsFile.at(image)) ++accuracy;
-        Co /= neuronsNumPerLayer[neuronsNumPerLayer.size() - 1];
+        Co /= neuronsPerLayerList[neuronsPerLayerList.size() - 1];
         costAverage += Co;
 
         //Compute gradient descent's derivatives (back propagation)
         QList<QList<double>> cost_z;//da/dz * dCo/da
-        for (int var = 0; var < neuronsNumPerLayer.size() - 1; ++var) {
+        for (int var = 0; var < neuronsPerLayerList.size() - 1; ++var) {
             cost_z.append(QList<double>());
         }
-        int L = neuronsNumPerLayer.size() - 1;
-        for (int k = 0; k < neuronsNumPerLayer[L]; ++k) {
+        int L = neuronsPerLayerList.size() - 1;
+        for (int k = 0; k < neuronsPerLayerList[L]; ++k) {
             double cost_a = 2 * (a[L][k] - y[k]);//dCo/da
             double a_z = pow(sech(z[L][k]), 2);//da/dz
             cost_z[L - 1].append(a_z * cost_a);
 
             bGradient[L - 1][k] += cost_z[L - 1][k];//dCo/db
-            for (int j = 0; j < neuronsNumPerLayer[L - 1]; ++j) {
+            for (int j = 0; j < neuronsPerLayerList[L - 1]; ++j) {
                 wGradient[L - 1][k][j] += a[L][k] * cost_z[L - 1][k];//dCo/dw
             }
         }
-        for (int L = neuronsNumPerLayer.size() - 2; L > 0; --L) {
-            for (int k = 0; k < neuronsNumPerLayer[L]; ++k) {
+        for (int L = neuronsPerLayerList.size() - 2; L > 0; --L) {
+            for (int k = 0; k < neuronsPerLayerList[L]; ++k) {
                 double cost_a = 0;//dCo/da
-                for (int j = 0; j < neuronsNumPerLayer[L + 1]; ++j) {
+                for (int j = 0; j < neuronsPerLayerList[L + 1]; ++j) {
                     double z_a = w[L][j][k];//dz(L)/da(L-1)
                     cost_a += z_a * cost_z[L][j];
                 }
@@ -328,7 +326,7 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
                 cost_z[L - 1].append(a_z * cost_a);
 
                 bGradient[L - 1][k] += cost_z[L - 1][k];//dCo/db
-                for (int j = 0; j < neuronsNumPerLayer[L - 1]; ++j) {
+                for (int j = 0; j < neuronsPerLayerList[L - 1]; ++j) {
                     wGradient[L - 1][k][j] += a[L][k] * cost_z[L - 1][k];//dCo/dw
                 }
             }
@@ -336,10 +334,9 @@ void MainWindow::minimizeCostFunction(int firstSample, int batchSize, double &co
     }
     costAverage /= batchSize;
 
-    double r = 0.1;//Learning rate
-    for (int L = 0; L < neuronsNumPerLayer.size() - 1; ++L) {
-        for (int j = 0; j < neuronsNumPerLayer[L+1]; ++j) {
-            for(int k = 0; k < neuronsNumPerLayer[L]; ++k){
+    for (int L = 0; L < neuronsPerLayerList.size() - 1; ++L) {
+        for (int j = 0; j < neuronsPerLayerList[L+1]; ++j) {
+            for(int k = 0; k < neuronsPerLayerList[L]; ++k){
                 wGradient[L][j][k] /= batchSize;
                 w[L][j][k] -= r * wGradient[L][j][k];
             }

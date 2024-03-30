@@ -23,10 +23,13 @@ public:
 private:
     Ui::MainWindow *ui;
 
-    QList<int> neuronsNumPerLayer = {728, 16, 16, 10};//neurons number per layer
+    QList<int> neuronsPerLayerList = {728, 16, 16, 10};//neurons number per layer
     QList<QList<double>> a;//neurons values
     QList<QList<QList<double>>> w;//weights
     QList<QList<double>> b;//biases
+
+    int batchSize = 100;
+    double r = 0.1;//Learning rate
 
     QList<QList<unsigned char>> imagesFile;
     QList<unsigned char> labelsFile;
