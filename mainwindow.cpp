@@ -208,7 +208,9 @@ MainWindow::MainWindow(QWidget *parent)
                 int acuracy = 0;
 
                 minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
-                emit batchTrained(x, cost, acuracy);
+                costSeries->append(QPointF(x, cost));
+                acuracySeries->append(QPointF(x, (double)acuracy / batchSize));
+                xAxis->setMax(x);
 
                 ++x;
                 QCoreApplication::processEvents();
@@ -227,13 +229,6 @@ MainWindow::MainWindow(QWidget *parent)
 
         graphWidget->hide();
         initializerWidget->show();
-    });
-
-    QObject::connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
-        costSeries->append(QPointF(x, cost));
-        acuracySeries->append(QPointF(x, (double)acuracy / batchSize));
-
-        xAxis->setMax(x);
     });
 }
 

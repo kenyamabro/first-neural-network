@@ -33,7 +33,5 @@ private:
     
     void minimizeCostFunction(int firstSample, int batchSize, double &costAverage, int &accuracy);
     double sech(double x);
-signals:
-    void batchTrained(int point, double cost, int acuracy);
 };
 #endif // MAINWINDOW_H
