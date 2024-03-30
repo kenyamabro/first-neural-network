@@ -115,17 +115,17 @@ MainWindow::MainWindow(QWidget *parent)
     auto initializeButton = new QPushButton("Initialize");
     initializerLayout->addRow(initializeButton);
 
-    auto computationWidget = new QWidget();
-    auto computationLayout = new QFormLayout(computationWidget);
-    layout->addWidget(computationWidget, 1);
-    computationWidget->hide();
+    auto graphWidget = new QWidget();
+    auto graphLayout = new QFormLayout(graphWidget);
+    layout->addWidget(graphWidget, 1);
+    graphWidget->hide();
 
     auto pauseButton = new QCheckBox("Pause computing");
-    computationLayout->addRow(pauseButton);
+    graphLayout->addRow(pauseButton);
     pauseButton->setCheckable(true);
 
     auto quitButton = new QCheckBox("Quit computing");
-    computationLayout->addRow(quitButton);
+    graphLayout->addRow(quitButton);
     quitButton->setCheckable(true);
 
     int batchSize = 100;
@@ -169,8 +169,6 @@ MainWindow::MainWindow(QWidget *parent)
     chartView->setRenderHint(QPainter::Antialiasing);
     layout->addWidget(chartView, 5);
 
-    bool pauseComputation = false;
-
     QString filename = "./train-images-idx3-ubyte/train-images-idx3-ubyte";
     QString label_filename = "./train-labels-idx1-ubyte/train-labels-idx1-ubyte";
 
@@ -179,7 +177,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QObject::connect(initializeButton, &QPushButton::clicked, this, [=]() mutable {
         initializerWidget->hide();
-        computationWidget->show();
+        graphWidget->show();
 
         a.clear();
         for (int L = 0; L < neuronsNumPerLayer.size(); ++L) {
@@ -204,34 +202,21 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
         int x = 0;
-        bool quitComputation = false;
-        while (!quitComputation) {
-            while (x < imagesFile.size() / batchSize && !pauseComputation && !quitComputation) {
+        while (!quitButton->isChecked() && x < imagesFile.size() / batchSize) {
+            while (x < imagesFile.size() / batchSize && !pauseButton->isChecked() && !quitButton->isChecked()) {
                 double cost = 0;
                 int acuracy = 0;
 
                 minimizeCostFunction(batchSize * x, batchSize, cost, acuracy);
                 emit batchTrained(x, cost, acuracy);
 
-                if(pauseButton->isChecked()) pauseComputation = true;
-                if(quitButton->isChecked()){
-                    pauseComputation = true;
-                    quitComputation = true;
-                }
-
                 ++x;
-
                 QCoreApplication::processEvents();
             }
-            while(x < imagesFile.size() / batchSize && pauseComputation && !quitComputation){
-                if(!pauseButton->isChecked()) pauseComputation = false;
-                if(quitButton->isChecked()){
-                    pauseComputation = false;
-                    quitComputation = true;
-                }
+            while(x < imagesFile.size() / batchSize && pauseButton->isChecked() && !quitButton->isChecked()){
                 QCoreApplication::processEvents();
             }
-            if(x >= imagesFile.size() / batchSize) quitComputation = true;
+            QCoreApplication::processEvents();
         }
 
         costSeries->clear();
@@ -240,10 +225,11 @@ MainWindow::MainWindow(QWidget *parent)
         pauseButton->setChecked(false);
         quitButton->setChecked(false);
 
-        computationWidget->hide();
+        graphWidget->hide();
         initializerWidget->show();
     });
-    connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
+
+    QObject::connect(this, &MainWindow::batchTrained, this, [=](int x, double cost, int acuracy) {
         costSeries->append(QPointF(x, cost));
         acuracySeries->append(QPointF(x, (double)acuracy / batchSize));
 
